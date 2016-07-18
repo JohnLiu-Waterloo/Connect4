@@ -88,12 +88,12 @@ public class BotStarter {
   }
   
   private int minMax(Field field, int botId, int steps) {
-      if (steps == 0) {
-        return 0;   //TODO: replace with heuristic function
+      if (winGame(field, 3 - botId)) {
+        return (botId == mBotId ? 500 : -500);
       }
 
-      if (winGame(field, 3 - botId)) {
-        return (botId == mBotId ? 1000 : -1000);
+      if (steps == 0) {
+        return heuristic_fcn(field, botId);
       }
 
       int bestValue = botId == mBotId ? -1000 : 1000;
@@ -118,36 +118,7 @@ public class BotStarter {
       return bestValue;
   }
 
-  /**
-   * Define the heuristic function as A - B
-   * A = # of possible ways (available lines of 4) for botId to win
-   * B = # of possible ways for other bot to win
-   
-  private int heuristic_fcn(Field field, int botId) {
-    int nc = field.getNrColumns();
-    int nr = field.getNrRows();
-
-    int countBot = 0, countOther = 0;
-
-    // check columns
-    for (int i=0; i<nc; i++) {
-      
-      for (int j=0; j<nr-3; j++) {
-        for (int k=j; k<4; k++) {
-
-        }
-        if (field.getDisc(i, j) == botId) {
-          count = count + 1;
-        } else {
-          count = 0;
-        }
-
-        if (count >= 4) {
-          return true;
-        }
-      }
-    }
-    */
+    
 
   private boolean winGame(Field field, int botId) {
     int nc = field.getNrColumns();
@@ -188,10 +159,10 @@ public class BotStarter {
 
     // check diagnols
     // For each diagnol, either c + r = constant or c - r = constant
-    for (int k=1; k<=6; k++) {
+    for (int k=1; k<=nc+nr-7; k++) {
       count = 0;
       for (int i=0; i<nc; i++) {
-        int j = k - i + 4;
+        int j = k + 2 - i;
         if (j >= 0 && j < nr && field.getDisc(i, j) == botId) {
           count = count + 1;
         } else {
@@ -204,7 +175,7 @@ public class BotStarter {
 
       count = 0;
       for (int i=0; i<nc; i++) {
-        int j = k + i - 4;
+        int j = 3 - k + i;
         if (j >= 0 && j < nr && field.getDisc(i, j) == botId) {
           count = count + 1;
         } else {
@@ -216,6 +187,105 @@ public class BotStarter {
       }
     }
     return false;
+  }
+
+  /**
+   * Define the heuristic function as A - B
+   * A = # of possible ways (available lines of 4) for botId to win
+   * B = # of possible ways for other bot to win
+   */
+  private int heuristic_fcn(Field field, int botId) {
+    int nc = field.getNrColumns();
+    int nr = field.getNrRows();
+
+    int countBot = 0, countOther = 0;   // A = countBot, B = countOther
+
+    // check columns
+    for (int i=0; i<nc; i++) {
+      for (int k=0; k<nr-3; k++) {
+        countBot++;
+        countOther++;
+        for (int j=k; j<k+4; j++) {
+          if (field.getDisc(i, j) == 3 - botId) {
+            countBot--;
+            break;
+          }
+        }
+        for (int j=k; j<k+4; j++) {
+          if (field.getDisc(i, j) == botId) {
+            countOther--;
+            break;
+          }
+        }
+      }
+    }
+
+    // check rows
+    for (int j=0; j<nr; j++) {
+      for (int k=0; k<nc-3; k++) {
+        countBot++;
+        countOther++;
+        for (int i=k; i<k+4; i++) {
+          if (field.getDisc(i, j) == 3 - botId) {
+            countBot--;
+            break;
+          }
+        }
+        for (int i=k; i<k+4; i++) {
+          if (field.getDisc(i, j) == botId) {
+            countOther--;
+            break;
+          }
+        }
+      }
+    }
+
+    // check diagnols
+    // For each diagnol, either c + r = constant or c - r = constant
+    // k is the constant above and represents a unique diagnol
+    // l represents which line of 4 on the diagnol is currently being considered 
+    int ndiag = nc+nr-7;
+    for (int k=1; k<=ndiag; k++) {
+      for (int l=0; l < 3 - Math.abs(k-3.5); l++) {    // this is hardcoded to 7x6
+        countBot++;
+        countOther++;
+        for (int i=Math.max(0, k-3) + l; i<Math.max(0, k-3) + l + 4; i++) {
+          int j = k + 2 - i;
+          if (field.getDisc(i, j) == 3 - botId) {
+            countBot--;
+            break;
+          }
+        }
+        for (int i=Math.max(0, k-3) + l; i<Math.max(0, k-3) + l + 4; i++) {
+          int j = k + 2 - i;
+          if (field.getDisc(i, j) == botId) {
+            countOther--;
+            break;
+          }
+        }
+      }
+
+      for (int l=0; l < 3 - Math.abs(k-3.5); l++) {
+        countBot++;
+        countOther++;
+        for (int i=Math.max(0, k-3) + l; i<Math.max(0, k-3) + l + 4; i++) {
+          int j = 3 - k + i;
+          if (field.getDisc(i, j) == 3 - botId) {
+            countBot--;
+            break;
+          }
+        }
+        for (int i=Math.max(0, k-3) + l; i<Math.max(0, k-3) + l + 4; i++) {
+          int j = 3 - k + i;
+          if (field.getDisc(i, j) == botId) {
+            countOther--;
+            break;
+          }
+        }
+      }
+    }
+
+    return countBot - countOther;
   }
 
   public void setBotId(int mBotId) {
