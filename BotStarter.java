@@ -54,19 +54,19 @@ public class BotStarter {
      */
     int [] preferred_cols = { 3, 2, 4, 1, 5, 0, 6 };
     for (int i=0; i<nc; i++) {
-      c = preferred_cols[i];
+      int c = preferred_cols[i];
       // if column is full, then this is not a valid move
       if (field.isColumnFull(c))
         continue;
 
       // create a copy of the current field
-      Field move1Field = new Field(0, 0);
-      move1Field.parseFromString(field.toString());
+      Field newField = new Field(0, 0);
+      newField.parseFromString(field.toString());
 
-      move1Field.addDisc(c, mBotId);
+      newField.addDisc(c, mBotId);
 
       // Make this move if I've just won the game
-      if (winGame(field, mBotId)) {
+      if (winGame(newField, mBotId)) {
         move = c;
         break;
       }
@@ -76,20 +76,7 @@ public class BotStarter {
        * If the opponent is now in a position to win this game
        * Then we assign this move a value of -10
        */
-      int value = 0;
-      for (int d=0; d<nc; d++) {
-        Field move2Field = new Field(0, 0);
-        move2Field.parseFromString(move1Field.toString());
-        move2Field.addDisc(d, 3 - mBotId);
-         
-        if (winGame(field, 3 - mBotId)) {
-          value = -10;
-          break;
-        }
-
-        // Add heuristic funciton here for value of board
-        // and reassign value
-      }
+      int value = minMax(newField, 3 - mBotId, 4);
 
       if (value > maxValue) {
         maxValue = value;
@@ -100,6 +87,68 @@ public class BotStarter {
     return move;
   }
   
+  private int minMax(Field field, int botId, int steps) {
+      if (steps == 0) {
+        return 0;   //TODO: replace with heuristic function
+      }
+
+      if (winGame(field, 3 - botId)) {
+        return (botId == mBotId ? 1000 : -1000);
+      }
+
+      int bestValue = botId == mBotId ? -1000 : 1000;
+      int nc = field.getNrColumns();
+      for (int d=0; d<nc; d++) {
+        if (field.isColumnFull(d))
+          continue;
+
+        Field newField = new Field(0, 0);
+        newField.parseFromString(field.toString());
+        
+        newField.addDisc(d, botId);
+         
+        int value = minMax(newField, 3-botId, steps-1);
+        if (botId == mBotId && value > bestValue) {
+          bestValue = value;
+        } else if (botId != mBotId && value < bestValue) {
+          bestValue = value;
+        }
+      }
+
+      return bestValue;
+  }
+
+  /**
+   * Define the heuristic function as A - B
+   * A = # of possible ways (available lines of 4) for botId to win
+   * B = # of possible ways for other bot to win
+   
+  private int heuristic_fcn(Field field, int botId) {
+    int nc = field.getNrColumns();
+    int nr = field.getNrRows();
+
+    int countBot = 0, countOther = 0;
+
+    // check columns
+    for (int i=0; i<nc; i++) {
+      
+      for (int j=0; j<nr-3; j++) {
+        for (int k=j; k<4; k++) {
+
+        }
+        if (field.getDisc(i, j) == botId) {
+          count = count + 1;
+        } else {
+          count = 0;
+        }
+
+        if (count >= 4) {
+          return true;
+        }
+      }
+    }
+    */
+
   private boolean winGame(Field field, int botId) {
     int nc = field.getNrColumns();
     int nr = field.getNrRows();
